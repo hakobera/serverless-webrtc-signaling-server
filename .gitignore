@@ -1,0 +1,5 @@
+.aws-sam/
+bin/
+packaged.yaml
+go.sum
+.env

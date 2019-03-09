@@ -1,0 +1,334 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  serverless-webrtc-signaling-server
+
+  SAM Template for serverlss-webrtc-signaling-server that has the DynamoDB table and
+  Lambda functions needed to implement the WebRTC signaling server.
+
+Parameters:
+  StageName:
+      Type: String
+      Default: 'Prod'
+      Description: (Required) The name of the stage. Minimum 3 characters
+      MinLength: 3
+      MaxLength: 50
+      AllowedPattern: ^[A-Za-z_0-9]+$
+      ConstraintDescription: 'Required. Can be characters, numbers and underscore only.'
+  RoomsTableName:
+      Type: String
+      Default: 'Rooms'
+      Description: (Required) The name of the new DynamoDB to store data for each rooms. Minimum 3 characters
+      MinLength: 3
+      MaxLength: 50
+      AllowedPattern: ^[A-Za-z_]+$
+      ConstraintDescription: 'Required. Can be characters and underscore only. No numbers or special characters allowed.'
+  ConnectionsTableName:
+      Type: String
+      Default: 'Clients'
+      Description: (Required) The name of the new DynamoDB to store data for each connected clients. Minimum 3 characters
+      MinLength: 3
+      MaxLength: 50
+      AllowedPattern: ^[A-Za-z_]+$
+      ConstraintDescription: 'Required. Can be characters and underscore only. No numbers or special characters allowed.'
+
+Resources:
+  ServerlessWebRTCSignalingServer:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: ServerlessWebRTCSignalingServer
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: "$request.body.type"
+  ConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ServerlessWebRTCSignalingServer 
+      RouteKey: $connect
+      AuthorizationType: NONE
+      OperationName: ConnectRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref ConnectInteg
+  ConnectInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ServerlessWebRTCSignalingServer
+      Description: Connect Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub:
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${OnConnectFunction.Arn}/invocations
+  DisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ServerlessWebRTCSignalingServer
+      RouteKey: $disconnect
+      AuthorizationType: NONE
+      OperationName: DisconnectRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref DisconnectInteg
+  DisconnectInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ServerlessWebRTCSignalingServer
+      Description: Disconnect Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub:
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${OnDisconnectFunction.Arn}/invocations
+  EchoRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ServerlessWebRTCSignalingServer
+      RouteKey: echo
+      AuthorizationType: NONE
+      OperationName: EchoRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref EchoInteg 
+  EchoInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ServerlessWebRTCSignalingServer
+      Description: Echo Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub:
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EchoFunction.Arn}/invocations
+  RegisterRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ServerlessWebRTCSignalingServer
+      RouteKey: register
+      AuthorizationType: NONE
+      OperationName: RegisterRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref RegisterInteg 
+  RegisterInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ServerlessWebRTCSignalingServer
+      Description: Register Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub:
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RegisterFunction.Arn}/invocations
+  BroadcastRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ServerlessWebRTCSignalingServer
+      RouteKey: $default
+      AuthorizationType: NONE
+      OperationName: BroadcastRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref BroadcastInteg 
+  BroadcastInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ServerlessWebRTCSignalingServer
+      Description: Broadcast Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub:
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${BroadcastFunction.Arn}/invocations
+  Deployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    DependsOn:
+      - ConnectRoute
+      - EchoRoute
+      - DisconnectRoute
+    Properties:
+      ApiId: !Ref ServerlessWebRTCSignalingServer
+  Stage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      StageName: !Ref StageName
+      Description: !Ref StageName
+      DeploymentId: !Ref Deployment
+      ApiId: !Ref ServerlessWebRTCSignalingServer
+  RoomsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: "roomId"
+        AttributeType: "S"
+      KeySchema:
+      - AttributeName: "roomId"
+        KeyType: "HASH"
+      BillingMode: PAY_PER_REQUEST
+      #ProvisionedThroughput:
+      #  ReadCapacityUnits: 5
+      #  WriteCapacityUnits: 5
+      SSESpecification:
+        SSEEnabled: True
+      TableName: !Ref RoomsTableName
+  ConnectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: "connectionId"
+        AttributeType: "S"
+      KeySchema:
+      - AttributeName: "connectionId"
+        KeyType: "HASH"
+      BillingMode: PAY_PER_REQUEST
+      #ProvisionedThroughput:
+      #  ReadCapacityUnits: 5
+      #  WriteCapacityUnits: 5
+      SSESpecification:
+        SSEEnabled: True
+      TableName: !Ref ConnectionsTableName
+  OnConnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: bin/
+      Handler: onconnect
+      MemorySize: 128
+      Runtime: go1.x
+      Tracing: Active
+      Environment:
+        Variables:
+          ROOM_TABLE_NAME: !Ref RoomsTableName
+          CONNECTION_TABLE_NAME: !Ref ConnectionsTableName
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: !Ref RoomsTableName
+      - DynamoDBCrudPolicy:
+          TableName: !Ref ConnectionsTableName
+  OnConnectPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - ServerlessWebRTCSignalingServer
+      - OnConnectFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref OnConnectFunction
+      Principal: apigateway.amazonaws.com
+  OnDisconnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: bin/
+      Handler: ondisconnect
+      MemorySize: 128
+      Runtime: go1.x
+      Tracing: Active
+      Environment:
+        Variables:
+          ROOM_TABLE_NAME: !Ref RoomsTableName
+          CONNECTION_TABLE_NAME: !Ref ConnectionsTableName
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: !Ref RoomsTableName
+      - DynamoDBCrudPolicy:
+          TableName: !Ref ConnectionsTableName
+  OnDisconnectPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - ServerlessWebRTCSignalingServer
+      - OnDisconnectFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref OnDisconnectFunction
+      Principal: apigateway.amazonaws.com
+  EchoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: bin/
+      Handler: echo
+      MemorySize: 128
+      Runtime: go1.x
+      Tracing: Active
+      Policies:
+      - Statement:
+        - Effect: Allow
+          Action:
+          - 'execute-api:ManageConnections'
+          Resource:
+          - 'arn:aws:execute-api:*:*:*/@connections/*'
+  EchoPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - ServerlessWebRTCSignalingServer
+      - EchoFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref EchoFunction
+      Principal: apigateway.amazonaws.com
+  RegisterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: bin/
+      Handler: register
+      MemorySize: 128
+      Runtime: go1.x
+      Tracing: Active
+      Environment:
+        Variables:
+          ROOM_TABLE_NAME: !Ref RoomsTableName
+          CONNECTION_TABLE_NAME: !Ref ConnectionsTableName
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: !Ref RoomsTableName
+      - DynamoDBCrudPolicy:
+          TableName: !Ref ConnectionsTableName
+      - Statement:
+        - Effect: Allow
+          Action:
+          - 'execute-api:ManageConnections'
+          Resource:
+          - 'arn:aws:execute-api:*:*:*/@connections/*'
+  RegisterPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - ServerlessWebRTCSignalingServer
+      - RegisterFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref RegisterFunction
+      Principal: apigateway.amazonaws.com
+  BroadcastFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: bin/
+      Handler: broadcast
+      MemorySize: 128
+      Runtime: go1.x
+      Tracing: Active
+      Environment:
+        Variables:
+          ROOM_TABLE_NAME: !Ref RoomsTableName
+          CONNECTION_TABLE_NAME: !Ref ConnectionsTableName
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: !Ref RoomsTableName
+      - DynamoDBCrudPolicy:
+          TableName: !Ref ConnectionsTableName
+      - Statement:
+        - Effect: Allow
+          Action:
+          - 'execute-api:ManageConnections'
+          Resource:
+          - 'arn:aws:execute-api:*:*:*/@connections/*'
+  BroadcastPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - ServerlessWebRTCSignalingServer
+      - BroadcastFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref BroadcastFunction
+      Principal: apigateway.amazonaws.com
+
+Outputs:
+  WebSocketURI:
+    Description: "The WSS Protocol URI to connect to"
+    Value: !Join [ '', [ 'wss://', !Ref ServerlessWebRTCSignalingServer, '.execute-api.', !Ref 'AWS::Region', '.amazonaws.com/', !Ref 'Stage'] ]
+  
