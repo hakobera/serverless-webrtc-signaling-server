@@ -8,29 +8,34 @@ Description: >
 
 Parameters:
   StageName:
-      Type: String
-      Default: 'Prod'
-      Description: (Required) The name of the stage. Minimum 3 characters
-      MinLength: 3
-      MaxLength: 50
-      AllowedPattern: ^[A-Za-z_0-9]+$
-      ConstraintDescription: 'Required. Can be characters, numbers and underscore only.'
+    Type: String
+    Default: 'Prod'
+    Description: (Required) The name of the stage. Minimum 3 characters
+    MinLength: 3
+    MaxLength: 50
+    AllowedPattern: ^[A-Za-z_0-9]+$
+    ConstraintDescription: 'Required. Can be characters, numbers and underscore only.'
   RoomsTableName:
-      Type: String
-      Default: 'Rooms'
-      Description: (Required) The name of the new DynamoDB to store data for each rooms. Minimum 3 characters
-      MinLength: 3
-      MaxLength: 50
-      AllowedPattern: ^[A-Za-z_]+$
-      ConstraintDescription: 'Required. Can be characters and underscore only. No numbers or special characters allowed.'
+    Type: String
+    Default: 'Rooms'
+    Description: (Required) The name of the new DynamoDB to store data for each rooms. Minimum 3 characters
+    MinLength: 3
+    MaxLength: 50
+    AllowedPattern: ^[A-Za-z_]+$
+    ConstraintDescription: 'Required. Can be characters and underscore only. No numbers or special characters allowed.'
   ConnectionsTableName:
-      Type: String
-      Default: 'Clients'
-      Description: (Required) The name of the new DynamoDB to store data for each connected clients. Minimum 3 characters
-      MinLength: 3
-      MaxLength: 50
-      AllowedPattern: ^[A-Za-z_]+$
-      ConstraintDescription: 'Required. Can be characters and underscore only. No numbers or special characters allowed.'
+    Type: String
+    Default: 'Clients'
+    Description: (Required) The name of the new DynamoDB to store data for each connected clients. Minimum 3 characters
+    MinLength: 3
+    MaxLength: 50
+    AllowedPattern: ^[A-Za-z_]+$
+    ConstraintDescription: 'Required. Can be characters and underscore only. No numbers or special characters allowed.'
+  CloudWatchLogRetentionDays:
+    Type: Number
+    Default: 7
+    MinValue: 1
+    Description: (Required) specify log retention days for Lambda functions
 
 Resources:
   ServerlessWebRTCSignalingServer:
@@ -212,6 +217,11 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref OnConnectFunction
       Principal: apigateway.amazonaws.com
+  OnConnectLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${OnConnectFunction}
+      RetentionInDays: !Ref CloudWatchLogRetentionDays
   OnDisconnectFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -238,6 +248,11 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref OnDisconnectFunction
       Principal: apigateway.amazonaws.com
+  OnDisconnectLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${OnDisconnectFunction}
+      RetentionInDays: !Ref CloudWatchLogRetentionDays
   EchoFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -262,6 +277,11 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref EchoFunction
       Principal: apigateway.amazonaws.com
+  EchoLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${EchoFunction}
+      RetentionInDays: !Ref CloudWatchLogRetentionDays
   RegisterFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -294,6 +314,11 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref RegisterFunction
       Principal: apigateway.amazonaws.com
+  RegisterLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${RegisterFunction}
+      RetentionInDays: !Ref CloudWatchLogRetentionDays
   BroadcastFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -326,6 +351,11 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref BroadcastFunction
       Principal: apigateway.amazonaws.com
+  BroadcastLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${BroadcastFunction}
+      RetentionInDays: !Ref CloudWatchLogRetentionDays
 
 Outputs:
   WebSocketURI:
