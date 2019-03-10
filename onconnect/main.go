@@ -8,8 +8,10 @@ import (
 )
 
 func handler(request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
+	ctx := request.RequestContext
+	fmt.Printf("Connected %s\n", ctx.ConnectionID)
+
 	return events.APIGatewayProxyResponse{
-		Body:       fmt.Sprintf("Connected %s", request.RequestContext.ConnectionID),
 		StatusCode: 200,
 	}, nil
 }
