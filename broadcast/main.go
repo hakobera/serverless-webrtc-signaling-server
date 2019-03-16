@@ -6,8 +6,6 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/hakobera/serverless-webrtc-signaling-server/common"
-
-	"github.com/aws/aws-sdk-go/service/apigatewaymanagementapi"
 )
 
 func handler(request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -31,7 +29,7 @@ func handler(request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayP
 		return common.ErrorResponse(err, 500)
 	}
 
-	svc, err := common.NewApiGatewayManagementApi(ctx.DomainName, ctx.Stage)
+	api, err := common.NewApiGatewayManagementApi(ctx.DomainName, ctx.Stage)
 	if err != nil {
 		return common.ErrorResponse(err, 500)
 	}
@@ -40,11 +38,7 @@ func handler(request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayP
 	var ee error
 	for _, c := range room.Clients {
 		if c.ConnectionID != ctx.ConnectionID {
-			_, err = svc.PostToConnection(&apigatewaymanagementapi.PostToConnectionInput{
-				ConnectionId: &c.ConnectionID,
-				Data:         []byte(request.Body),
-			})
-
+			err = api.PostToConnection(c.ConnectionID, request.Body)
 			if err != nil {
 				ee = err
 			}
