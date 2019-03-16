@@ -5,7 +5,6 @@ This is the code and template for the serverless-webrtc-signaling-server. There 
 ## Requirements
 
 * AWS CLI already configured with Administrator permission
-* [Docker installed](https://www.docker.com/community-edition)
 * [Golang 1.12 or greater](https://golang.org)
 
 ## Setup process
