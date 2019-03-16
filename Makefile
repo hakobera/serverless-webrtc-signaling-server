@@ -16,7 +16,7 @@ clean:
 	rm -rf bin
 
 test:
-	@echo "TBD"
+	GO111MODULE=on go test ./echo/ -test.v
 
 package: build
 	sam package \
@@ -43,4 +43,4 @@ delete-stack:
 	--stack-name ${STACK_NAME} \
 	--region ${AWS_REGION}
 
-.PHONY: clean build package deploy describe-stack delete-stack
+.PHONY: clean build test package deploy describe-stack delete-stack

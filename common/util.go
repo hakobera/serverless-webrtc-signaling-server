@@ -9,13 +9,29 @@ import (
 	"github.com/aws/aws-sdk-go/service/apigatewaymanagementapi"
 )
 
-func NewApiGatewayManagementApi(domainName, stage string) (*apigatewaymanagementapi.ApiGatewayManagementApi, error) {
+type ApiGatewayManagementAPIImpl struct {
+	client *apigatewaymanagementapi.ApiGatewayManagementApi
+}
+
+func (a *ApiGatewayManagementAPIImpl) PostToConnection(connectionID, body string) error {
+	input := &apigatewaymanagementapi.PostToConnectionInput{
+		ConnectionId: &connectionID,
+		Data:         []byte(body),
+	}
+	_, err := a.client.PostToConnection(input)
+	return err
+}
+
+func NewApiGatewayManagementApi(domainName, stage string) (ApiGatewayManagementAPI, error) {
 	sess, err := session.NewSession(aws.NewConfig().WithEndpoint(fmt.Sprintf("%s/%s", domainName, stage)))
 	if err != nil {
 		return nil, err
 	}
 
-	return apigatewaymanagementapi.New(sess), nil
+	api := ApiGatewayManagementAPIImpl{
+		client: apigatewaymanagementapi.New(sess),
+	}
+	return &api, nil
 }
 
 func ErrorResponse(err error, statusCode int) (events.APIGatewayProxyResponse, error) {

@@ -9,8 +9,6 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/guregu/dynamo"
 	"github.com/hakobera/serverless-webrtc-signaling-server/common"
-
-	"github.com/aws/aws-sdk-go/service/apigatewaymanagementapi"
 )
 
 type RegisterCommand struct {
@@ -61,16 +59,12 @@ func handler(request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayP
 		result = "reject"
 	}
 
-	svc, err := common.NewApiGatewayManagementApi(ctx.DomainName, ctx.Stage)
+	api, err := common.NewApiGatewayManagementApi(ctx.DomainName, ctx.Stage)
 	if err != nil {
 		return common.ErrorResponse(err, 500)
 	}
 
-	_, err = svc.PostToConnection(&apigatewaymanagementapi.PostToConnectionInput{
-		ConnectionId: &ctx.ConnectionID,
-		Data:         []byte(fmt.Sprintf("{\"type\": \"%s\"}", result)),
-	})
-
+	err = api.PostToConnection(ctx.ConnectionID, fmt.Sprintf("{\"type\": \"%s\"}", result))
 	if err != nil {
 		return common.ErrorResponse(err, 500)
 	}

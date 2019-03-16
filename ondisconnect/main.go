@@ -5,7 +5,6 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/service/apigatewaymanagementapi"
 	"github.com/hakobera/serverless-webrtc-signaling-server/common"
 )
 
@@ -34,7 +33,7 @@ func handler(request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayP
 		return common.ErrorResponse(err, 500)
 	}
 
-	svc, err := common.NewApiGatewayManagementApi(ctx.DomainName, ctx.Stage)
+	api, err := common.NewApiGatewayManagementApi(ctx.DomainName, ctx.Stage)
 	if err != nil {
 		return common.ErrorResponse(err, 500)
 	}
@@ -46,10 +45,7 @@ func handler(request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayP
 	for _, c := range room.Clients {
 		if c.ConnectionID != ctx.ConnectionID {
 			// connection might be closed, in that case just ignore error
-			svc.PostToConnection(&apigatewaymanagementapi.PostToConnectionInput{
-				ConnectionId: &c.ConnectionID,
-				Data:         []byte(`{"type":"close"}`),
-			})
+			api.PostToConnection(c.ConnectionID, `{"type":"close"}`)
 		}
 	}
 	room.Clients = remove(room.Clients, ctx.ConnectionID)
