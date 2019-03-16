@@ -8,6 +8,11 @@ import (
 	"github.com/hakobera/serverless-webrtc-signaling-server/common"
 )
 
+func echoHandler(request events.APIGatewayWebsocketProxyRequest, api common.ApiGatewayManagementAPI) error {
+	ctx := request.RequestContext
+	return api.PostToConnection(ctx.ConnectionID, request.Body)
+}
+
 func handler(request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
 	ctx := request.RequestContext
 	fmt.Printf("[echo] connectionID=%s, body=%s\n", ctx.ConnectionID, request.Body)
@@ -26,11 +31,6 @@ func handler(request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayP
 		Body:       "Data sent.",
 		StatusCode: 200,
 	}, nil
-}
-
-func echoHandler(request events.APIGatewayWebsocketProxyRequest, api common.ApiGatewayManagementAPI) error {
-	ctx := request.RequestContext
-	return api.PostToConnection(ctx.ConnectionID, request.Body)
 }
 
 func main() {

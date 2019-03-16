@@ -26,14 +26,55 @@ type Connection struct {
 	RoomID       string `dynamo:"roomId"`
 }
 
-func DB() *dynamo.DB {
-	return dynamo.New(session.New(), aws.NewConfig())
+type DynamoDB struct {
+	db *dynamo.DB
 }
 
-func RoomsTable(db *dynamo.DB) dynamo.Table {
-	return db.Table(os.Getenv("ROOM_TABLE_NAME"))
+type DynamoTable struct {
+	table dynamo.Table
 }
 
-func ConnectionsTable(db *dynamo.DB) dynamo.Table {
-	return db.Table(os.Getenv("CONNECTION_TABLE_NAME"))
+func (d DynamoDB) Table(name string) Table {
+	return &DynamoTable{
+		table: d.db.Table(name),
+	}
+}
+
+func (d *DynamoDB) TxPut(items ...*TableItem) error {
+	tx := d.db.WriteTx()
+	for _, item := range items {
+		t := item.Table.(DynamoTable)
+		tx.Put(t.table.Put(item.Item))
+	}
+	return tx.Run()
+}
+
+func (d DynamoDB) RoomsTable() Table {
+	return &DynamoTable{
+		table: d.db.Table(os.Getenv("ROOM_TABLE_NAME")),
+	}
+}
+
+func (d DynamoDB) ConnectionsTable() Table {
+	return &DynamoTable{
+		table: d.db.Table(os.Getenv("CONNECTION_TABLE_NAME")),
+	}
+}
+
+func (t DynamoTable) FindOne(column string, key, out interface{}) error {
+	return t.table.Get(column, key).One(out)
+}
+
+func (t DynamoTable) Put(item interface{}) error {
+	return t.table.Put(item).Run()
+}
+
+func (t DynamoTable) Delete(column string, key interface{}) error {
+	return t.table.Delete(column, key).Run()
+}
+
+func NewDB() DB {
+	return &DynamoDB{
+		db: dynamo.New(session.New(), aws.NewConfig()),
+	}
 }

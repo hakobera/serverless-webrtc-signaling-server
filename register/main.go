@@ -17,54 +17,58 @@ type RegisterCommand struct {
 	ClientID string `json:"client_id"`
 }
 
-func handler(request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
-	now := time.Now().UTC()
-	ctx := request.RequestContext
-	fmt.Println(ctx.ConnectionID, request.Body)
-
+func registerHandler(api common.ApiGatewayManagementAPI, db common.DB, connectionID, body string) error {
 	cmd := RegisterCommand{}
-	err := json.Unmarshal([]byte(request.Body), &cmd)
+	err := json.Unmarshal([]byte(body), &cmd)
 	if err != nil {
-		return common.ErrorResponse(err, 400)
+		return err
 	}
 
-	db := common.DB()
-	roomsTable := common.RoomsTable(db)
-	var room common.Room
+	connectionsTable := db.ConnectionsTable()
+	roomsTable := db.RoomsTable()
+	now := time.Now().UTC()
 
-	err = roomsTable.Get("roomId", cmd.RoomID).One(&room)
+	var room common.Room
+	err = roomsTable.FindOne("roomId", cmd.RoomID, &room)
 	if err != nil {
 		if err.Error() == dynamo.ErrNotFound.Error() {
 			room = common.Room{RoomID: cmd.RoomID, Clients: []common.Client{}, Created: now}
 		} else {
-			return common.ErrorResponse(err, 500)
+			return err
 		}
 	}
 
+	conn := common.Connection{ConnectionID: connectionID, RoomID: room.RoomID}
 	result := "accept"
-	connectionsTable := common.ConnectionsTable(db)
-	conn := common.Connection{ConnectionID: ctx.ConnectionID, RoomID: room.RoomID}
 
 	if len(room.Clients) < 2 {
-		client := common.Client{ConnectionID: ctx.ConnectionID, ClientID: cmd.ClientID, Joined: now}
+		client := common.Client{ConnectionID: connectionID, ClientID: cmd.ClientID, Joined: now}
 		room.Clients = append(room.Clients, client)
-		tx := db.WriteTx()
-		tx.Put(roomsTable.Put(room))
-		tx.Put(connectionsTable.Put(conn))
-		err := tx.Run()
+		err := db.TxPut(
+			&common.TableItem{Table: roomsTable, Item: room},
+			&common.TableItem{Table: connectionsTable, Item: conn},
+		)
 		if err != nil {
-			return common.ErrorResponse(err, 500)
+			return err
 		}
 	} else {
 		result = "reject"
 	}
+
+	return api.PostToConnection(connectionID, fmt.Sprintf("{\"type\": \"%s\"}", result))
+}
+
+func handler(request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
+	ctx := request.RequestContext
+	fmt.Println(ctx.ConnectionID, request.Body)
 
 	api, err := common.NewApiGatewayManagementApi(ctx.DomainName, ctx.Stage)
 	if err != nil {
 		return common.ErrorResponse(err, 500)
 	}
 
-	err = api.PostToConnection(ctx.ConnectionID, fmt.Sprintf("{\"type\": \"%s\"}", result))
+	db := common.NewDB()
+	err = registerHandler(api, db, ctx.ConnectionID, request.Body)
 	if err != nil {
 		return common.ErrorResponse(err, 500)
 	}

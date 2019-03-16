@@ -8,37 +8,28 @@ import (
 	"github.com/hakobera/serverless-webrtc-signaling-server/common"
 )
 
-func handler(request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
-	ctx := request.RequestContext
-	fmt.Println(ctx.ConnectionID, ctx.RouteKey, request.Body)
-
-	db := common.DB()
-	connectionsTable := common.ConnectionsTable(db)
-	roomsTable := common.RoomsTable(db)
+func broadcastHandler(api common.ApiGatewayManagementAPI, db common.DB, connectionID, body string) error {
+	connectionsTable := db.ConnectionsTable()
+	roomsTable := db.RoomsTable()
 
 	var conn common.Connection
 	var room common.Room
+	var err error
 
-	err := connectionsTable.Get("connectionId", ctx.ConnectionID).One(&conn)
+	err = connectionsTable.FindOne("connectionId", connectionID, &conn)
 	if err != nil {
-		return common.ErrorResponse(err, 500)
+		return err
 	}
 
-	err = roomsTable.Get("roomId", conn.RoomID).One(&room)
+	err = roomsTable.FindOne("roomId", conn.RoomID, &room)
 	if err != nil {
-		return common.ErrorResponse(err, 500)
+		return err
 	}
 
-	api, err := common.NewApiGatewayManagementApi(ctx.DomainName, ctx.Stage)
-	if err != nil {
-		return common.ErrorResponse(err, 500)
-	}
-
-	//TODO: improve error handling
 	var ee error
 	for _, c := range room.Clients {
-		if c.ConnectionID != ctx.ConnectionID {
-			err = api.PostToConnection(c.ConnectionID, request.Body)
+		if c.ConnectionID != connectionID {
+			err := api.PostToConnection(c.ConnectionID, body)
 			if err != nil {
 				ee = err
 			}
@@ -46,7 +37,25 @@ func handler(request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayP
 	}
 
 	if ee != nil {
-		return common.ErrorResponse(ee, 500)
+		return ee
+	}
+
+	return nil
+}
+
+func handler(request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
+	ctx := request.RequestContext
+	fmt.Println(ctx.ConnectionID, ctx.RouteKey, request.Body)
+
+	api, err := common.NewApiGatewayManagementApi(ctx.DomainName, ctx.Stage)
+	if err != nil {
+		return common.ErrorResponse(err, 500)
+	}
+
+	db := common.NewDB()
+	err = broadcastHandler(api, db, ctx.ConnectionID, request.Body)
+	if err != nil {
+		return common.ErrorResponse(err, 500)
 	}
 
 	return events.APIGatewayProxyResponse{

@@ -8,48 +8,54 @@ import (
 	"github.com/hakobera/serverless-webrtc-signaling-server/common"
 )
 
-func handler(request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
-	ctx := request.RequestContext
-	fmt.Printf("Disconnected %s\n", ctx.ConnectionID)
-
-	db := common.DB()
-	connectionsTable := common.ConnectionsTable(db)
-	roomsTable := common.RoomsTable(db)
+func ondisconnectHandler(api common.ApiGatewayManagementAPI, db common.DB, connectionID string) error {
+	connectionsTable := db.ConnectionsTable()
+	roomsTable := db.RoomsTable()
 
 	var conn common.Connection
 	var room common.Room
+	var err error
 
-	err := connectionsTable.Get("connectionId", ctx.ConnectionID).One(&conn)
+	err = connectionsTable.FindOne("connectionId", connectionID, &conn)
 	if err != nil {
-		return common.ErrorResponse(err, 500)
+		return err
 	}
-	err = connectionsTable.Delete("connectionId", ctx.ConnectionID).Run()
+	err = connectionsTable.Delete("connectionId", connectionID)
 	if err != nil {
-		return common.ErrorResponse(err, 500)
+		return err
 	}
 
-	err = roomsTable.Get("roomId", conn.RoomID).One(&room)
+	err = roomsTable.FindOne("roomId", conn.RoomID, &room)
 	if err != nil {
-		return common.ErrorResponse(err, 500)
+		return err
 	}
+
+	for _, c := range room.Clients {
+		if c.ConnectionID != connectionID {
+			// connection might be closed, in that case just ignore error
+			api.PostToConnection(c.ConnectionID, `{"type":"close"}`)
+		}
+	}
+	room.Clients = remove(room.Clients, connectionID)
+	err = roomsTable.Put(room)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func handler(request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
+	ctx := request.RequestContext
+	fmt.Printf("Disconnected %s\n", ctx.ConnectionID)
 
 	api, err := common.NewApiGatewayManagementApi(ctx.DomainName, ctx.Stage)
 	if err != nil {
 		return common.ErrorResponse(err, 500)
 	}
 
-	if err != nil {
-		return common.ErrorResponse(err, 500)
-	}
-
-	for _, c := range room.Clients {
-		if c.ConnectionID != ctx.ConnectionID {
-			// connection might be closed, in that case just ignore error
-			api.PostToConnection(c.ConnectionID, `{"type":"close"}`)
-		}
-	}
-	room.Clients = remove(room.Clients, ctx.ConnectionID)
-	err = roomsTable.Put(room).Run()
+	db := common.NewDB()
+	err = ondisconnectHandler(api, db, ctx.ConnectionID)
 	if err != nil {
 		return common.ErrorResponse(err, 500)
 	}
