@@ -7,6 +7,8 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/guregu/dynamo"
 	"github.com/hakobera/serverless-webrtc-signaling-server/common"
 )
@@ -67,7 +69,7 @@ func handler(request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayP
 		return common.ErrorResponse(err, 500)
 	}
 
-	db := common.NewDB()
+	db := common.NewDB(session.New(), aws.NewConfig())
 	err = registerHandler(api, db, ctx.ConnectionID, request.Body)
 	if err != nil {
 		return common.ErrorResponse(err, 500)

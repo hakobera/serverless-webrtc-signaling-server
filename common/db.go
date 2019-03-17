@@ -73,8 +73,8 @@ func (t DynamoTable) Delete(column string, key interface{}) error {
 	return t.table.Delete(column, key).Run()
 }
 
-func NewDB() DB {
+func NewDB(sess *session.Session, config *aws.Config) DB {
 	return &DynamoDB{
-		db: dynamo.New(session.New(), aws.NewConfig()),
+		db: dynamo.New(sess, config),
 	}
 }
