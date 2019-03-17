@@ -9,7 +9,7 @@ import (
 	mock "github.com/hakobera/serverless-webrtc-signaling-server/mock_common"
 )
 
-func TestSample1(t *testing.T) {
+func TestEchoHandler(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
