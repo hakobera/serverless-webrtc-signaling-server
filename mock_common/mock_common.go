@@ -85,7 +85,7 @@ func (mr *MockDBMockRecorder) Table(name interface{}) *gomock.Call {
 }
 
 // TxPut mocks base method
-func (m *MockDB) TxPut(items ...*common.TableItem) error {
+func (m *MockDB) TxPut(items ...common.TableItem) error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{}
 	for _, a := range items {

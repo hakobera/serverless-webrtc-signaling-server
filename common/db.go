@@ -40,7 +40,7 @@ func (d DynamoDB) Table(name string) Table {
 	}
 }
 
-func (d *DynamoDB) TxPut(items ...*TableItem) error {
+func (d *DynamoDB) TxPut(items ...TableItem) error {
 	tx := d.db.WriteTx()
 	for _, item := range items {
 		t := item.Table.(DynamoTable)

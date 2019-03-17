@@ -19,6 +19,7 @@ test:
 	GO111MODULE=on go test ./echo/ -test.v -cover
 	GO111MODULE=on go test ./broadcast/ -test.v -cover
 	GO111MODULE=on go test ./ondisconnect/ -test.v -cover
+	GO111MODULE=on go test ./register/ -test.v -cover
 
 package: build
 	sam package \

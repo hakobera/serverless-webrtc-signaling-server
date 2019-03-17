@@ -19,7 +19,7 @@ type RegisterCommand struct {
 	ClientID string `json:"client_id"`
 }
 
-func registerHandler(api common.ApiGatewayManagementAPI, db common.DB, connectionID, body string) error {
+func registerHandler(api common.ApiGatewayManagementAPI, db common.DB, connectionID, body string, now time.Time) error {
 	cmd := RegisterCommand{}
 	err := json.Unmarshal([]byte(body), &cmd)
 	if err != nil {
@@ -28,7 +28,6 @@ func registerHandler(api common.ApiGatewayManagementAPI, db common.DB, connectio
 
 	connectionsTable := db.ConnectionsTable()
 	roomsTable := db.RoomsTable()
-	now := time.Now().UTC()
 
 	var room common.Room
 	err = roomsTable.FindOne("roomId", cmd.RoomID, &room)
@@ -47,8 +46,8 @@ func registerHandler(api common.ApiGatewayManagementAPI, db common.DB, connectio
 		client := common.Client{ConnectionID: connectionID, ClientID: cmd.ClientID, Joined: now}
 		room.Clients = append(room.Clients, client)
 		err := db.TxPut(
-			&common.TableItem{Table: roomsTable, Item: room},
-			&common.TableItem{Table: connectionsTable, Item: conn},
+			common.TableItem{Table: roomsTable, Item: room},
+			common.TableItem{Table: connectionsTable, Item: conn},
 		)
 		if err != nil {
 			return err
@@ -70,7 +69,7 @@ func handler(request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayP
 	}
 
 	db := common.NewDB(session.New(), aws.NewConfig())
-	err = registerHandler(api, db, ctx.ConnectionID, request.Body)
+	err = registerHandler(api, db, ctx.ConnectionID, request.Body, time.Now().UTC())
 	if err != nil {
 		return common.ErrorResponse(err, 500)
 	}

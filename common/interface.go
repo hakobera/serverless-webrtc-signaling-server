@@ -6,7 +6,7 @@ type ApiGatewayManagementAPI interface {
 
 type DB interface {
 	Table(name string) Table
-	TxPut(items ...*TableItem) error
+	TxPut(items ...TableItem) error
 
 	RoomsTable() Table
 	ConnectionsTable() Table
