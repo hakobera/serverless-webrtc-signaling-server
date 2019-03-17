@@ -2,14 +2,24 @@
 
 # serverless-webrtc-signaling-server
 
-This is the code and template for the serverless-webrtc-signaling-server. There are three functions contained within the directories and a SAM teamplte that wires them up to a DynamoDB table and provides the minimal set of permissions needed to run the app.
+This is the code and template for the serverless-webrtc-signaling-server. There are five functions contained within the directories and a SAM teamplte that wires them up to a DynamoDB table and provides the minimal set of permissions needed to run the app.
+
+## What is Serverless WebRTC Signaling Server?
+
+Serverless WebRTC Signaling Server is Signaling Server for WebRTC using WebSocket and running on AWS.
+This signaling server only works for WebRTC P2P.
+
+This signaling server implements room feature compatible with [WebRTC Signaling Server Ayame](https://github.com/shiguredo/ayame).
+Room feature is simple, so only 2 people can join a room.
+
+If you want to know how this server works, refer to https://github.com/shiguredo/ayame/blob/develop/doc/DETAIL.md (written in Japanese)
+
+## Setup process on Local Machine
 
 ## Requirements
 
 * AWS CLI already configured with Administrator permission
 * [Golang 1.12 or greater](https://golang.org)
-
-## Setup process
 
 ### Installing dependencies
 
@@ -28,7 +38,18 @@ make build
 
 ### Local testing
 
-**Unfortunatelly sam CLI does not support WebSocket local test. So you need to deploy to test functionality.**
+#### Unit Testing
+
+We use `testing` package that is built-in in Golang and you can simply run the following command to run our tests:
+
+```shell
+make test
+```
+
+#### Integration Testing
+
+Unfortunatelly sam CLI does not support WebSocket local test. So you need to deploy to test functionality.
+We are planing to write local integration test using [Local Stack](https://github.com/localstack/localstack), but not yet implemented.
 
 ## Packaging and deployment
 
@@ -71,14 +92,6 @@ make describe-stack
 ```bash
 $ npm instal -g wscat
 $ wscat $(make describe-stack | jq -r '.[][] | select(.OutputKey == "WebSocketURI") | .OutputValue')
-```
-
-### Unit Testing
-
-We use `testing` package that is built-in in Golang and you can simply run the following command to run our tests:
-
-```shell
-make test
 ```
 
 ## License
