@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/hakobera/serverless-webrtc-signaling-server.svg?style=svg)](https://circleci.com/gh/hakobera/serverless-webrtc-signaling-server)
+
 # serverless-webrtc-signaling-server
 
 This is the code and template for the serverless-webrtc-signaling-server. There are three functions contained within the directories and a SAM teamplte that wires them up to a DynamoDB table and provides the minimal set of permissions needed to run the app.
