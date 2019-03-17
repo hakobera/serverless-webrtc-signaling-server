@@ -43,7 +43,7 @@ func (d DynamoDB) Table(name string) Table {
 func (d *DynamoDB) TxPut(items ...TableItem) error {
 	tx := d.db.WriteTx()
 	for _, item := range items {
-		t := item.Table.(DynamoTable)
+		t := item.Table.(*DynamoTable)
 		tx.Put(t.table.Put(item.Item))
 	}
 	return tx.Run()
