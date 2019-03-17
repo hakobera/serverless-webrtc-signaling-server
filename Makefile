@@ -17,6 +17,7 @@ clean:
 
 test:
 	GO111MODULE=on go test ./echo/ -test.v
+	GO111MODULE=on go test ./broadcast/ -test.v
 
 package: build
 	sam package \

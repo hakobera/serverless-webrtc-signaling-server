@@ -26,18 +26,10 @@ func broadcastHandler(api common.ApiGatewayManagementAPI, db common.DB, connecti
 		return err
 	}
 
-	var ee error
 	for _, c := range room.Clients {
 		if c.ConnectionID != connectionID {
-			err := api.PostToConnection(c.ConnectionID, body)
-			if err != nil {
-				ee = err
-			}
+			api.PostToConnection(c.ConnectionID, body)
 		}
-	}
-
-	if ee != nil {
-		return ee
 	}
 
 	return nil
