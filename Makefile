@@ -16,8 +16,9 @@ clean:
 	rm -rf bin
 
 test:
-	GO111MODULE=on go test ./echo/ -test.v
-	GO111MODULE=on go test ./broadcast/ -test.v
+	GO111MODULE=on go test ./echo/ -test.v -cover
+	GO111MODULE=on go test ./broadcast/ -test.v -cover
+	GO111MODULE=on go test ./ondisconnect/ -test.v -cover
 
 package: build
 	sam package \
