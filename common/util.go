@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
@@ -22,8 +23,10 @@ func (a *ApiGatewayManagementAPIImpl) PostToConnection(connectionID, body string
 	return err
 }
 
-func NewApiGatewayManagementApi(domainName, stage string) (ApiGatewayManagementAPI, error) {
-	sess, err := session.NewSession(aws.NewConfig().WithEndpoint(fmt.Sprintf("%s/%s", domainName, stage)))
+func NewApiGatewayManagementApi(APIID, stage string) (ApiGatewayManagementAPI, error) {
+	region := os.Getenv("AWS_REGION")
+	endpoint := fmt.Sprintf("https://%s.execute-api.%s.amazonaws.com/%s", APIID, region, stage)
+	sess, err := session.NewSession(aws.NewConfig().WithEndpoint(endpoint))
 	if err != nil {
 		return nil, err
 	}
