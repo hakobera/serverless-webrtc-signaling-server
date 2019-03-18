@@ -17,7 +17,7 @@ func handler(request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayP
 	ctx := request.RequestContext
 	fmt.Printf("[echo] connectionID=%s, body=%s\n", ctx.ConnectionID, request.Body)
 
-	api, err := common.NewApiGatewayManagementApi(ctx.DomainName, ctx.Stage)
+	api, err := common.NewApiGatewayManagementApi(ctx.APIID, ctx.Stage)
 	if err != nil {
 		return common.ErrorResponse(err, 500)
 	}
