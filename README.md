@@ -90,7 +90,7 @@ make describe-stack
 ## Connect to API Gateway Endpoint URL using wscat (WebSocket CLI client)
 
 ```bash
-$ npm instal -g wscat
+$ npm install -g wscat
 $ wscat $(make describe-stack | jq -r '.[][] | select(.OutputKey == "WebSocketURI") | .OutputValue')
 ```
 
