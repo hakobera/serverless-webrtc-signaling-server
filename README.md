@@ -9,7 +9,7 @@ This is the code and template for the serverless-webrtc-signaling-server. There 
 Serverless WebRTC Signaling Server is Signaling Server for WebRTC using WebSocket and running on AWS.
 This signaling server only works for WebRTC P2P.
 
-This signaling server implements room feature compatible with [WebRTC Signaling Server Ayame](https://github.com/shiguredo/ayame).
+This signaling server implements room feature compatible with [WebRTC Signaling Server Ayame](https://github.com/OpenAyame/ayame).
 Room feature is simple, so only 2 people can join a room.
 
 If you want to know how this server works, refer to https://github.com/shiguredo/ayame/blob/develop/doc/DETAIL.md (written in Japanese)
